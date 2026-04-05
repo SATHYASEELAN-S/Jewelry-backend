@@ -9,9 +9,9 @@ jobs:
          echo '${{ secrets.ENV_FILE}}'.env
          echo "env file created.."
       - name: checkout the github
-        run: |
-         actions/checkout@v5
-         ls -ltr   
+        uses: actions/checkout@v5
+      - name: print the file in github  
+        run: ls -ltr   
       - name: Login to docker 
         uses: docker/login-action@v4
         with:
