@@ -1,0 +1,12 @@
+# Environments
+.env
+jewelryenv/
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Database
+db.sqlite3
