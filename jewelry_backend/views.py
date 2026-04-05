@@ -11,7 +11,7 @@ def db_version(request):
         # You MUST return a response object! 
         # Sending it as JSON makes it easy for your React app to read later.
         return JsonResponse({
-            "status": "success",
+            "status": "success status",
             "database_version": row[0]
         })
         
