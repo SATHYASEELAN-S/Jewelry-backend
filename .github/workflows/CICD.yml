@@ -28,5 +28,5 @@ jobs:
           wait: 16000
           sleep: 30000  
       - name: Deployed status
-        run: echo "deployed.. "       
+        run: echo "deployed... "       
       
