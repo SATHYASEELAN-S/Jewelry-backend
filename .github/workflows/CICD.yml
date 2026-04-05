@@ -1,9 +1,8 @@
 name: Jewelry_shop
 on: push
 jobs:
-  
   Check-env-variable:
-    runs-on: ubuntu-lastest
+    runs-on: ubuntu-latest
     steps:
       - name: print env variable
         run: echo '${{ secrets.ENV_FILE}}'
