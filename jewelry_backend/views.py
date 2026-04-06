@@ -12,7 +12,7 @@ def db_version(request):
         # Sending it as JSON makes it easy for your React app to read later.
         return JsonResponse({
             "status": "success",
-            "database_version": row[0]
+            "item":"example", 
         })
         
     except Exception as e:
