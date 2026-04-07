@@ -13,7 +13,7 @@ def db_version(request):
         return JsonResponse({
  
             "status": "success...",
-            "database_version": row[0]
+            "item": "example"
         })
         
     except Exception as e:
