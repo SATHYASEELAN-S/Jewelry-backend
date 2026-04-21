@@ -7,6 +7,25 @@ env/
 # Python Cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Database
 db.sqlite3
+
+# Django generated
+staticfiles/
+media/
+
+# Python egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
