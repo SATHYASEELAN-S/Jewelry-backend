@@ -11,6 +11,15 @@ from apps.products.serializers import ProductSerializer, CategorySerializer
 from apps.products.pagination import ProductPagination
 
 class CategoryListAPIView(ListAPIView):
+    """
+    Returns a list of all jewelry categories.
+
+    Categories:
+    - Rings
+    - Necklaces
+    - Earrings
+    - Bracelets
+    """
     queryset=Category.objects.all()
     serializer_class=CategorySerializer
     @extend_schema(
@@ -23,6 +32,19 @@ class CategoryListAPIView(ListAPIView):
    
     
 class ProductDetailAPIView(RetrieveAPIView): 
+    """
+    Returns full details of a single product by its slug.
+
+    Includes:
+    - Product details (name, price, gender, description)
+    - Category details
+    - All variants (size, stock, extra price)
+    - All images
+    
+    Example:
+    - `/api/v1/products/rose-gold-plated-ring/`
+    """
+    
     serializer_class=ProductSerializer
     lookup_field='slug'
     @extend_schema(
