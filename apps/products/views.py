@@ -67,9 +67,12 @@ class ProductListAPIView(ListAPIView):
     Filters:
     - `?gender=female` → Filter by gender (male, female, unisex)
     - `?category=rings` → Filter by category slug
+    - `?minprice=100`               → Filter by minimum price
+    - `?maxprice=999`               → Filter by maximum price
+    - `?minprice=100&maxprice=999`  → Filter by price range
     - `?featured=true` → Get featured products only
     - `?page=2` → Pagination
-        - `?page_size=20` → Change number of items per page (max 50)
+    - `?page_size=20` → Change number of items per page (max 50)
     """
     
     @extend_schema(
@@ -79,6 +82,8 @@ class ProductListAPIView(ListAPIView):
             OpenApiParameter('gender',   description='Filter by gender (male, female, unisex)'),
             OpenApiParameter('category', description='Filter by category slug'),
             OpenApiParameter('featured', description='Filter featured products (true/false)'),
+            OpenApiParameter('minprice',  description='Minimum price filter (e.g. 100)'),
+            OpenApiParameter('maxprice',  description='Maximum price filter (e.g. 999)'),
         ]
     )
     def get(self, request, *args, **kwargs):
@@ -107,5 +112,15 @@ class ProductListAPIView(ListAPIView):
         featured = self.request.query_params.get('featured')
         if featured:
             queryset = queryset.filter(is_featured=True)
+            
+        minPrice=self.request.query_params.get('minprice')
+        maxPrice=self.request.query_params.get('maxprice')
+          
+        if minPrice:
+            queryset=queryset.filter(price__gte=minPrice)
+           
+        if maxPrice:
+            queryset=queryset.filter(price__lte=maxPrice)        
+        
 
         return queryset
