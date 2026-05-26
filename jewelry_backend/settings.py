@@ -113,8 +113,7 @@ DATABASES = {
 #     }
 # }
 
-import cloudinary
-import os
+import cloudinary 
 
 # Explicit cloudinary config - add this!
 cloudinary.config(
