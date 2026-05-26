@@ -3,12 +3,26 @@ from django.shortcuts import render
 
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from apps.products.models import Product, Category
 from apps.products.serializers import ProductSerializer, CategorySerializer
 from apps.products.pagination import ProductPagination
+
+
+@api_view(["GET"])
+def home(request):
+    return Response({
+        "message": "Jewelry API is running",
+        "admin": request.build_absolute_uri("/admin/"),
+        "products": request.build_absolute_uri("/api/v1/products/"),
+        "categories": request.build_absolute_uri("/api/v1/categories/"),
+        "swagger_docs": request.build_absolute_uri("/api/v1/docs/"),
+        "redoc": request.build_absolute_uri("/api/v1/redoc/"),
+    })
+
+
 
 class CategoryListAPIView(ListAPIView):
     """
