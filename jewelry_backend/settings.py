@@ -35,14 +35,15 @@ ALLOWED_HOSTS = ['*']
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',           # ← move here (BEFORE staticfiles)
     'django.contrib.staticfiles',
+    'cloudinary',                   # ← move here
     'corsheaders',
     'rest_framework',
     'apps.products',
@@ -112,6 +113,16 @@ DATABASES = {
 #     }
 # }
 
+import cloudinary
+import os
+
+# Explicit cloudinary config - add this!
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
+)
 
 # Cloudinary Config
 CLOUDINARY_STORAGE = {
