@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.products',
     # 'debug_toolbar',  # dev tools
     'drf_spectacular', # api docs
+    
 ]
 
 MIDDLEWARE = [
