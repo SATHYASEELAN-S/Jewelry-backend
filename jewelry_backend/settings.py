@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cloudinary',                   # ← move here
     'corsheaders',
+    'django_filters',
     'rest_framework',
     'apps.products',
     # 'debug_toolbar',  # dev tools
