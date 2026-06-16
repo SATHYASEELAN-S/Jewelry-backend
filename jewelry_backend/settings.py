@@ -37,15 +37,17 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',           # ← move here (BEFORE staticfiles)
     'django.contrib.staticfiles',
+    'cloudinary',                   # ← move here
     'corsheaders',
+    'django_filters',
     'rest_framework',
     'apps.products',
     # 'debug_toolbar',  # dev tools
@@ -62,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # dev tools
 ]
 CORS_ALLOW_ALL_ORIGINS = True
@@ -97,7 +100,7 @@ DATABASES = {
     'HOST': getenv('PGHOST'),
     'PORT': getenv('PGPORT', 5432),
     'OPTIONS': {
-      'sslmode': 'require',
+      'sslmode': getenv('PGSSLMODE', 'prefer'),
     },
     'DISABLE_SERVER_SIDE_CURSORS': True,
     'CONN_HEALTH_CHECKS': True,
@@ -111,7 +114,35 @@ DATABASES = {
 #     }
 # }
 
+import cloudinary 
 
+# Explicit cloudinary config - add this!
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+# Cloudinary Config
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+# Tell Django to use Cloudinary for media uploads
+# DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
@@ -158,8 +189,10 @@ REST_FRAMEWORK = {
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-MEDIA_URL  = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# MEDIA_URL  = '/media/'
+# MEDIA_ROOT = BASE_DIR / 'media'
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
