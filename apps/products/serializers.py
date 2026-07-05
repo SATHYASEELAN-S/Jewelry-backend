@@ -5,23 +5,27 @@ from rest_framework import serializers
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = "__all__"
+        fields = ['id', 'name', 'slug']
         
 class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariant
-        fields = "__all__"
+        fields = ['id', 'size', 'stock', 'extra_price']
         
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = "__all__"
+        fields = ['id','image','alt_text','is_primary']
         
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
-    images   = ProductImageSerializer(many=True, read_only=True)
-    
+    images   = ProductImageSerializer(many=True, read_only=True)    
     class Meta:
         model = Product
-        fields = "__all__"
+        fields = [
+        'name', 'slug', 'description',
+        'price', 'gender', 'is_featured',
+        'category', 'variants', 'images',
+        'created_at',
+    ]

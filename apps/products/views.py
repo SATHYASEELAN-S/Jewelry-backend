@@ -9,7 +9,9 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from apps.products.models import Product, Category
 from apps.products.serializers import ProductSerializer, CategorySerializer
 from apps.products.pagination import ProductPagination
-
+from apps.products.filters import ProductFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter,OrderingFilter
 
 @api_view(["GET"])
 def home(request):
@@ -77,64 +79,57 @@ class ProductDetailAPIView(RetrieveAPIView):
 class ProductListAPIView(ListAPIView):
     """
     Returns a list of all available products.
-    
+
     Filters:
-    - `?gender=female` → Filter by gender (male, female, unisex)
-    - `?category=rings` → Filter by category slug
+    - `?gender=female`              → Filter by gender (male, female, unisex)
+    - `?category=rings`             → Filter by category slug
+    - `?search=gold`                → Search by product name or description
     - `?minprice=100`               → Filter by minimum price
     - `?maxprice=999`               → Filter by maximum price
     - `?minprice=100&maxprice=999`  → Filter by price range
-    - `?featured=true` → Get featured products only
-    - `?page=2` → Pagination
-    - `?page_size=20` → Change number of items per page (max 50)
+    - `?show_all=true`              → Show all products including unavailable
+    - `?page=2`                     → Pagination
+    - `?page_size=20`               → Change number of items per page (max 50)
+    - `?ordering=price`             → Order by price (low to high)
+    - `?ordering=-price`            → Order by price (high to low)
+    - `?ordering=-created_at`       → Order by newest first
     """
     
     @extend_schema(
-        summary     = "List all products",
-        description = "Returns all available products. Supports filtering by gender, category and featured.",
+        summary     = "List all available products",
+        description = "Returns all available products. Supports filtering by gender, category, price range and search.",
         parameters  = [
-            OpenApiParameter('gender',   description='Filter by gender (male, female, unisex)'),
-            OpenApiParameter('category', description='Filter by category slug'),
-            OpenApiParameter('featured', description='Filter featured products (true/false)'),
+            OpenApiParameter('gender',    description='Filter by gender (male, female, unisex)'),
+            OpenApiParameter('category',  description='Filter by category slug'),
+            OpenApiParameter('show_all',  description='Show all products including unavailable (true/false)'),
             OpenApiParameter('minprice',  description='Minimum price filter (e.g. 100)'),
             OpenApiParameter('maxprice',  description='Maximum price filter (e.g. 999)'),
+            OpenApiParameter('search',    description='Search by product name or description'),
+            OpenApiParameter('ordering',  description='Order by price or created_at (e.g. price, -price, created_at, -created_at)'),
         ]
     )
+    
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
     
     serializer_class = ProductSerializer
     pagination_class = ProductPagination
-
+    filterset_class  = ProductFilter
+    filter_backends  = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields    = ['name', 'description']
+    ordering_fields  = ['price','created_at']
+    
     def get_queryset(self):
-        queryset = Product.objects.filter(is_available=True)\
+        show_all=self.request.query_params.get('show_all')
+        if show_all:
+            return Product.objects.all()\
+                .select_related('category')\
+                    .prefetch_related('variants','images')\
+                        .order_by('created_at')
+                
+        return Product.objects.filter(is_available=True)\
             .select_related('category')\
-                .prefetch_related('variants', 'images')
-
-        # filter by gender → /api/v1/products/?gender=female
-        gender = self.request.query_params.get('gender')
-        if gender:
-            queryset = queryset.filter(gender=gender)
-
-        # filter by category → /api/v1/products/?category=rings
-        category = self.request.query_params.get('category')
-        if category:
-            queryset = queryset.filter(category__slug=category)
-
-        # filter featured → /api/v1/products/?featured=true
-        featured = self.request.query_params.get('featured')
-        if featured:
-            queryset = queryset.filter(is_featured=True)
+                .prefetch_related('variants', 'images')\
+                    .order_by('created_at')  
             
-        minPrice=self.request.query_params.get('minprice')
-        maxPrice=self.request.query_params.get('maxprice')
-          
-        if minPrice:
-            queryset=queryset.filter(price__gte=minPrice)
-           
-        if maxPrice:
-            queryset=queryset.filter(price__lte=maxPrice)        
-        
-
-        return queryset
