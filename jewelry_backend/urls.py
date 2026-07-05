@@ -27,6 +27,8 @@ urlpatterns = [
     path("",home),
     # path('', views.db_version, name='db_version'),
     path('api/v1/', include('apps.products.urls')),
+    path('api/v1/', include('apps.accounts.urls')),
+    
     # API Documentation
     path('api/v1/schema/',          SpectacularAPIView.as_view(),        name='schema'),
     path('api/v1/docs/',            SpectacularSwaggerView.as_view(),    name='swagger-ui'),
