@@ -36,7 +36,7 @@ urlpatterns = [
 ]
 # ]+ debug_toolbar_urls()
 
-
+handler404 = 'utils.views.custom_404_handler'
  
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
