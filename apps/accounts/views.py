@@ -1,21 +1,20 @@
 from django.contrib.auth import authenticate
 from django.db import transaction
-
-from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.exceptions import ValidationError
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import Address
 from apps.accounts.serializers import (
-    RegisterSerializer,
+    AddressSerializer,
     LoginSerializer,
     LogoutSerializer,
-    AddressSerializer,
+    RegisterSerializer,
 )
 
 
@@ -84,9 +83,13 @@ class LogoutAPIView(APIView):
         return Response({"message": "logout successfully"}, status=status.HTTP_200_OK)
 
 
+from apps.accounts.pagination import AddressPagination
+
+
 class AddressAPIView(ListCreateAPIView):
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = AddressPagination
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user).order_by(
@@ -111,8 +114,58 @@ class AddressAPIView(ListCreateAPIView):
 
         serializer.save(user=self.request.user, is_default=is_default)
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        print(serializer.data)
+        response = {
+            "message": "Address created successfully",
+            "id": serializer.data["id"],
+            "street": serializer.data["street"],
+            "landmark": serializer.data["landmark"],
+            "city": serializer.data["city"],
+            "state": serializer.data["state"],
+            "pincode": serializer.data["pincode"],
+            "is_default": serializer.data["is_default"],
+        }
+        return Response(response, status=status.HTTP_201_CREATED)
 
-class AddressDetailAPIView(APIView):
 
-    def get(self, request):
-        pass
+from apps.accounts.permissions import AddressPermission
+
+
+class AddressDetailAPIView(RetrieveUpdateDestroyAPIView):
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated, AddressPermission]
+    lookup_field = "public_id"
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        is_default = serializer.validated_data.get("is_default", None)
+
+        # Only act if the client explicitly included is_default in the request
+        if is_default is True:
+            Address.objects.select_for_update().filter(
+                user=self.request.user, is_default=True
+            ).exclude(pk=self.get_object().pk).update(is_default=False)
+            serializer.save()
+
+        elif is_default is False:
+            raise ValidationError(
+                "You can't unset the default address directly. Set another address as default instead."
+            )
+
+        else:
+            # is_default wasn't part of this update at all — leave it untouched
+            serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.is_default:
+            raise ValidationError(
+                "You can't delete the default address. Set another address as default first."
+            )
+        return super().perform_destroy(instance)

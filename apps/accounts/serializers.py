@@ -44,6 +44,8 @@ class LogoutSerializer(serializers.Serializer):
 
 
 class AddressSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
     class Meta:
         model = Address
         fields = ["id", "street", "city", "state", "pincode", "landmark", "is_default"]
