@@ -2,25 +2,35 @@ from django.contrib.auth import authenticate
 from django.db import transaction
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+    RetrieveUpdateAPIView,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.accounts.permissions import AddressDetailPermission
+from apps.accounts.pagination import AddressPagination
+from apps.accounts.throttling import RegisterThrottle
 from apps.accounts.models import Address
 from apps.accounts.serializers import (
     AddressSerializer,
     LoginSerializer,
     LogoutSerializer,
     RegisterSerializer,
+    ProfileSerializer
 )
 
 
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
-
+    throttle_classes=[RegisterThrottle,]
+    
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
@@ -35,9 +45,6 @@ class RegisterAPIView(APIView):
         }
 
         return Response(results, status=status.HTTP_201_CREATED)
-
-
-from rest_framework.exceptions import AuthenticationFailed
 
 
 class LoginAPIView(APIView):
@@ -81,9 +88,6 @@ class LogoutAPIView(APIView):
             raise ValidationError("Invalid refresh token")
 
         return Response({"message": "logout successfully"}, status=status.HTTP_200_OK)
-
-
-from apps.accounts.pagination import AddressPagination
 
 
 class AddressAPIView(ListCreateAPIView):
@@ -132,12 +136,9 @@ class AddressAPIView(ListCreateAPIView):
         return Response(response, status=status.HTTP_201_CREATED)
 
 
-from apps.accounts.permissions import AddressPermission
-
-
 class AddressDetailAPIView(RetrieveUpdateDestroyAPIView):
     serializer_class = AddressSerializer
-    permission_classes = [IsAuthenticated, AddressPermission]
+    permission_classes = [IsAuthenticated, AddressDetailPermission]
     lookup_field = "public_id"
 
     def get_queryset(self):
@@ -169,3 +170,16 @@ class AddressDetailAPIView(RetrieveUpdateDestroyAPIView):
                 "You can't delete the default address. Set another address as default first."
             )
         return super().perform_destroy(instance)
+
+from django.contrib.auth import get_user_model
+        
+User = get_user_model()
+
+class ProfileAPIView(RetrieveUpdateAPIView):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        obj = self.request.user
+        self.check_object_permissions(self.request, obj)
+        return obj

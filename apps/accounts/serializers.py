@@ -1,5 +1,5 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from rest_framework import serializers
 
 from apps.accounts.models import Address
 
@@ -49,3 +49,20 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ["id", "street", "city", "state", "pincode", "landmark", "is_default"]
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(read_only=True)
+    addresses = AddressSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "email",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "full_name",
+            "addresses",
+        ]
+        read_only_fields = ["email"]
