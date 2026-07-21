@@ -5,11 +5,13 @@ from apps.accounts.views import (
     LogoutAPIView,
     AddressAPIView,
     AddressDetailAPIView,
+    ProfileAPIView,
 )
 
 urlpatterns = [
     path("register/", RegisterAPIView.as_view(), name="register"),
     path("address/", AddressAPIView.as_view(), name="address-list"),
+    path("profile/", ProfileAPIView.as_view(), name="profile-list"),
     path(
         "address/<uuid:public_id>/",
         AddressDetailAPIView.as_view(),

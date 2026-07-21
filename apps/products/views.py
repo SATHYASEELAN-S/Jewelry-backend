@@ -3,133 +3,79 @@ from django.shortcuts import render
 
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view 
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework.decorators import api_view
 
 from apps.products.models import Product, Category
 from apps.products.serializers import ProductSerializer, CategorySerializer
 from apps.products.pagination import ProductPagination
 from apps.products.filters import ProductFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter,OrderingFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
+
 
 @api_view(["GET"])
 def home(request):
-    return Response({
-        "message": "Jewelry API is running",
-        "admin": request.build_absolute_uri("/admin/"),
-        "products": request.build_absolute_uri("/api/v1/products/"),
-        "categories": request.build_absolute_uri("/api/v1/categories/"),
-        "swagger_docs": request.build_absolute_uri("/api/v1/docs/"),
-        "redoc": request.build_absolute_uri("/api/v1/redoc/"),
-    })
-
+    return Response(
+        {
+            "message": "Jewelry API is running",
+            "admin": request.build_absolute_uri("/admin/"),
+            "products": request.build_absolute_uri("/api/v1/products/"),
+            "categories": request.build_absolute_uri("/api/v1/categories/"),
+            "swagger_docs": request.build_absolute_uri("/api/v1/docs/"),
+            "redoc": request.build_absolute_uri("/api/v1/redoc/"),
+        }
+    )
 
 
 class CategoryListAPIView(ListAPIView):
-    """
-    Returns a list of all jewelry categories.
 
-    Categories:
-    - Rings
-    - Necklaces
-    - Earrings
-    - Bracelets
-    """
-    queryset=Category.objects.all()
-    serializer_class=CategorySerializer
-    @extend_schema(
-        summary     = "List all categories",
-        description = "Returns all product categories.",
-    )
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
-     
-   
-    
-class ProductDetailAPIView(RetrieveAPIView): 
-    """
-    Returns full details of a single product by its slug.
 
-    Includes:
-    - Product details (name, price, gender, description)
-    - Category details
-    - All variants (size, stock, extra price)
-    - All images
-    
-    Example:
-    - `/api/v1/products/rose-gold-plated-ring/`
-    """
-    
-    serializer_class=ProductSerializer
-    lookup_field='slug'
-    @extend_schema(
-        summary     = "Get product detail",
-        description = "Returns a single product detail by slug.",
-    )
+
+class ProductDetailAPIView(RetrieveAPIView):
+    serializer_class = ProductSerializer
+    lookup_field = "slug"
+
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
-        
+
     def get_queryset(self):
-        return Product.objects.filter(is_available=True)\
-            .select_related('category')\
-            .prefetch_related('variants', 'images')
-    
-    
-class ProductListAPIView(ListAPIView):
-    """
-    Returns a list of all available products.
+        return (
+            Product.objects.filter(is_available=True)
+            .select_related("category")
+            .prefetch_related("variants", "images")
+        )
 
-    Filters:
-    - `?gender=female`              → Filter by gender (male, female, unisex)
-    - `?category=rings`             → Filter by category slug
-    - `?search=gold`                → Search by product name or description
-    - `?minprice=100`               → Filter by minimum price
-    - `?maxprice=999`               → Filter by maximum price
-    - `?minprice=100&maxprice=999`  → Filter by price range
-    - `?show_all=true`              → Show all products including unavailable
-    - `?page=2`                     → Pagination
-    - `?page_size=20`               → Change number of items per page (max 50)
-    - `?ordering=price`             → Order by price (low to high)
-    - `?ordering=-price`            → Order by price (high to low)
-    - `?ordering=-created_at`       → Order by newest first
-    """
-    
-    @extend_schema(
-        summary     = "List all available products",
-        description = "Returns all available products. Supports filtering by gender, category, price range and search.",
-        parameters  = [
-            OpenApiParameter('gender',    description='Filter by gender (male, female, unisex)'),
-            OpenApiParameter('category',  description='Filter by category slug'),
-            OpenApiParameter('show_all',  description='Show all products including unavailable (true/false)'),
-            OpenApiParameter('minprice',  description='Minimum price filter (e.g. 100)'),
-            OpenApiParameter('maxprice',  description='Maximum price filter (e.g. 999)'),
-            OpenApiParameter('search',    description='Search by product name or description'),
-            OpenApiParameter('ordering',  description='Order by price or created_at (e.g. price, -price, created_at, -created_at)'),
-        ]
-    )
-    
+
+class ProductListAPIView(ListAPIView):
+
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    
     serializer_class = ProductSerializer
     pagination_class = ProductPagination
-    filterset_class  = ProductFilter
-    filter_backends  = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields    = ['name', 'description']
-    ordering_fields  = ['price','created_at']
-    
+    filterset_class = ProductFilter
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["price", "created_at"]
+
     def get_queryset(self):
-        show_all=self.request.query_params.get('show_all')
+        show_all = self.request.query_params.get("show_all")
         if show_all:
-            return Product.objects.all()\
-                .select_related('category')\
-                    .prefetch_related('variants','images')\
-                        .order_by('created_at')
-                
-        return Product.objects.filter(is_available=True)\
-            .select_related('category')\
-                .prefetch_related('variants', 'images')\
-                    .order_by('created_at')  
-            
+            return (
+                Product.objects.all()
+                .select_related("category")
+                .prefetch_related("variants", "images")
+                .order_by("created_at")
+            )
+
+        return (
+            Product.objects.filter(is_available=True)
+            .select_related("category")
+            .prefetch_related("variants", "images")
+            .order_by("created_at")
+        )
