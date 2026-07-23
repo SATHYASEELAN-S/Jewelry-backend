@@ -1,5 +1,7 @@
 from django.contrib.auth import authenticate
 from django.db import transaction
+from django.contrib.auth import get_user_model
+
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
@@ -14,6 +16,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
 from apps.accounts.permissions import AddressDetailPermission
 from apps.accounts.pagination import AddressPagination
 from apps.accounts.throttling import RegisterThrottle
@@ -23,14 +26,16 @@ from apps.accounts.serializers import (
     LoginSerializer,
     LogoutSerializer,
     RegisterSerializer,
-    ProfileSerializer
+    ProfileSerializer,
 )
+from apps.accounts.tasks import send_welcome_email
 
+User = get_user_model()
 
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
-    throttle_classes=[RegisterThrottle,]
-    
+    # throttle_classes=[RegisterThrottle,]
+
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
@@ -38,6 +43,7 @@ class RegisterAPIView(APIView):
 
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
+        send_welcome_email.delay(user.email, user.first_name)
         results = {
             "message": "Registered Successfully.",
             "refresh token": str(refresh),
@@ -171,9 +177,6 @@ class AddressDetailAPIView(RetrieveUpdateDestroyAPIView):
             )
         return super().perform_destroy(instance)
 
-from django.contrib.auth import get_user_model
-        
-User = get_user_model()
 
 class ProfileAPIView(RetrieveUpdateAPIView):
     serializer_class = ProfileSerializer
