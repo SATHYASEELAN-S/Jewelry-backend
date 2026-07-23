@@ -17,7 +17,7 @@ django-cors-headers==4.9.0
 django-debug-toolbar==6.3.0
 django-filter==25.2
 djangorestframework==3.17.1
-djangorestframework-jwt==1.11.0
+djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
 Faker==40.15.0
 gunicorn==25.3.0
@@ -26,13 +26,17 @@ inflection==0.5.1
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 kombu==5.6.2
+mypy_extensions==1.1.0
 packaging==26.0
+pathspec==1.1.1
 pillow==12.2.0
+platformdirs==4.11.0
 prompt_toolkit==3.0.52
 psycopg2-binary==2.9.11
 PyJWT==1.7.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
+pytokens==0.4.1
 PyYAML==6.0.3
 redis==8.0.1
 referencing==0.37.0
