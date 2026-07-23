@@ -28,6 +28,7 @@ urlpatterns = [
     # path('', views.db_version, name='db_version'),
     path('api/v1/', include('apps.products.urls')),
     path('api/v1/', include('apps.accounts.urls')),
+    path('api/v1/', include('apps.carts.urls')),
     
     # API Documentation
     path('api/v1/schema/',          SpectacularAPIView.as_view(),        name='schema'),

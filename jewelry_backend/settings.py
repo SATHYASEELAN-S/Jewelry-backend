@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "apps.products",
     "apps.accounts",
+    'apps.carts',
     # 'debug_toolbar',  # dev tools
     "drf_spectacular",  # api docs
 ]
