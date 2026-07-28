@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "apps.products",
     "apps.accounts",
+    'apps.carts',
     # 'debug_toolbar',  # dev tools
     "drf_spectacular",  # api docs
 ]
@@ -219,8 +220,8 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Celery Configuration Options
 
-CELERY_BROKER_URL = os.environ.get("redis://127.0.0.1:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("redis://127.0.0.1:6379/0")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
