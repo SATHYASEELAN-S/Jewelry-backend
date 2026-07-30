@@ -35,8 +35,9 @@ class Cart(models.Model):
     def total_price(self):
         return sum(item.subtotal for item in self.items.all())
 
-
+from uuid import uuid4
 class CartItem(models.Model):
+    public_id=models.UUIDField(default=uuid4,editable=False,unique=True)    
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(
         "products.ProductVariant",
@@ -48,7 +49,9 @@ class CartItem(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["cart", "variant"], name="unique_cart_variant")
+            models.UniqueConstraint(
+                fields=["cart", "variant"], name="unique_cart_variant"
+            )
         ]
 
     def __str__(self):
