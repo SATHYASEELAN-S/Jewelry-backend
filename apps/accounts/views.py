@@ -29,8 +29,10 @@ from apps.accounts.serializers import (
     ProfileSerializer,
 )
 from apps.accounts.tasks import send_welcome_email
+from apps.carts.cart_utils import merge_guest_cart_into_user_cart
 
 User = get_user_model()
+
 
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
@@ -67,6 +69,7 @@ class LoginAPIView(APIView):
 
         if not user:
             raise AuthenticationFailed()
+        merge_guest_cart_into_user_cart(request, user)
 
         refresh = RefreshToken.for_user(user)
         return Response(
