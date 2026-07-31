@@ -1,7 +1,10 @@
+from uuid import uuid4
+
 from django.db import models
 
 
 class Category(models.Model):
+    public_id        = models.UUIDField(default=uuid4, editable=False, unique=True)
     name        = models.CharField(max_length=100)
     slug        = models.SlugField(unique=True)
     image       = models.ImageField(upload_to='categories/', blank=True)
@@ -36,6 +39,7 @@ class Product(models.Model):
         return self.name
     
 class ProductVariant(models.Model):
+    public_id        = models.UUIDField(default=uuid4, editable=False, unique=True)
     product          = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     size             = models.CharField(max_length=20, blank=True) 
     stock            = models.PositiveIntegerField(default=0)
@@ -45,6 +49,7 @@ class ProductVariant(models.Model):
         return f"{self.product.name} - {self.size}"
     
 class ProductImage(models.Model):
+    public_id        = models.UUIDField(default=uuid4, editable=False, unique=True)
     product    = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image      = models.ImageField(upload_to='products/')
     alt_text   = models.CharField(max_length=200, blank=True)

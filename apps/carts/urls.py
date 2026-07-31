@@ -1,9 +1,12 @@
 from django.urls import path
 
-from .views import CartItemAPIView, CartItemDetailAPIVIew
+from .views import CartItemAPIView, CartItemDetailAPIView
 
-urlpatterns=[ 
+urlpatterns = [
     path("items/", CartItemAPIView.as_view(), name="cart-item"),
-    path("items/<uuid:public_id>/", CartItemDetailAPIVIew.as_view(), name="cart-item-detail"),
-
+    path(
+        "items/<uuid:public_id>/",
+        CartItemDetailAPIView.as_view(),
+        name="cart-item-detail",
+    ),
 ]

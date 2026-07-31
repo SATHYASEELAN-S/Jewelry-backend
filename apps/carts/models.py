@@ -41,6 +41,7 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(
         "products.ProductVariant",
+        to_field="public_id",
         on_delete=models.CASCADE,
         related_name="cart_items",
     )
