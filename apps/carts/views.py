@@ -1,12 +1,16 @@
 from django.db import transaction
 
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
 from .models import Cart, CartItem
-from .serializers import CartItemSerializer
+from .serializers import CartItemSerializer, CartItemDetailSerializer
 from apps.products.models import ProductVariant
 
 
@@ -45,8 +49,6 @@ class CartItemAPIView(ListCreateAPIView):
 
         return Response(
             {
-                "user": request.user.email if request.user.is_authenticated else None,
-                "session_key": request.session.session_key,
                 "total_items": cart.total_items,
                 "total_price": cart.total_price,
                 "items": serializer.data,
@@ -86,8 +88,7 @@ class CartItemAPIView(ListCreateAPIView):
         return Response(
             {
                 "message": message,
-                "user": request.user.email if request.user.is_authenticated else None,
-                "session_key": request.session.session_key,
+                "id": response_serializer.data["id"],
                 "total_items": cart.total_items,
                 "total_price": cart.total_price,
                 "variant": response_serializer.data["variant"],
@@ -99,12 +100,41 @@ class CartItemAPIView(ListCreateAPIView):
         )
 
 
-class CartItemDetailAPIVIew(RetrieveAPIView):
-    serializer_class = CartItemSerializer
-    lookup_field = 'public_id'
+class CartItemDetailAPIView(RetrieveUpdateDestroyAPIView):
+    serializer_class = CartItemDetailSerializer
+    lookup_field = "public_id"
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
             return CartItem.objects.filter(cart__user=self.request.user)
         else:
-            return CartItem.objects.filter(cart__session_key=self.request.session.session_key)
+            return CartItem.objects.filter(
+                cart__session_key=self.request.session.session_key
+            )
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        cart_item = self.get_object()
+        serializer = self.get_serializer(cart_item, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        variant = ProductVariant.objects.get(public_id=cart_item.variant_id)
+        quantity = serializer.validated_data["quantity"]
+
+        if quantity > variant.stock:
+            raise ValidationError(f"Only {variant.stock} items left.")
+
+        serializer.save()
+        response = {
+            "message": "Cart item updated successfully.",
+            "data": serializer.data,
+        }
+        return Response(response, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        cart_item = self.get_object()
+        cart_item.delete()
+        response = {
+            "message": "Cart item deleted successfully.",
+        }
+        return Response(response, status=status.HTTP_200_OK)
