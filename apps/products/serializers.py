@@ -13,10 +13,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)
+    is_in_stock = serializers.ReadOnlyField()
 
     class Meta:
         model = ProductVariant
-        fields = ["id", "size", "stock", "extra_price"]
+        fields = ["id", "size", "stock", "extra_price", "is_in_stock"]
 
 
 class ProductImageSerializer(serializers.ModelSerializer):

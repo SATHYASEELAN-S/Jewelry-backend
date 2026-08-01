@@ -48,6 +48,10 @@ class ProductVariant(models.Model):
     def __str__(self):
         return f"{self.product.name} - {self.size}"
     
+    @property
+    def is_in_stock(self):
+        return self.stock>0
+    
 class ProductImage(models.Model):
     public_id        = models.UUIDField(default=uuid4, editable=False, unique=True)
     product    = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
