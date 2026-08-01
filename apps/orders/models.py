@@ -20,7 +20,11 @@ class Order(models.Model):
     public_id = models.UUIDField(default=uuid4, editable=False, unique=True)
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
     order_number = models.CharField(max_length=20, unique=True)
-    shipping_address = models.TextField()
+    shipping_street = models.CharField(max_length=255)
+    shipping_city = models.CharField(max_length=100)
+    shipping_state = models.CharField(max_length=100)
+    shipping_pincode = models.CharField(max_length=6)
+    shipping_landmark = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -29,7 +33,7 @@ class Order(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.order_number
+        return f"{self.order_number} -{self.public_id} "
 
     def save(self, *args, **kwargs):
         if not self.order_number:
