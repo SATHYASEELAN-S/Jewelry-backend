@@ -58,4 +58,4 @@ class Address(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.city}"
+        return f"{self.street} - {self.city} - {self.state} -  {self.pincode} - {self.is_default}"
