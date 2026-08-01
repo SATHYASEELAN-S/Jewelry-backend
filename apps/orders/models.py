@@ -1,8 +1,8 @@
-from django.db import models
 from uuid import uuid4
-from django.utils import timezone
 
 from django.contrib.auth import get_user_model
+from django.db import models
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -26,8 +26,8 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-         ordering = ["-created_at"]
-         
+        ordering = ["-created_at"]
+
     def __str__(self):
         return self.order_number
 
@@ -38,7 +38,9 @@ class Order(models.Model):
             self.order_number = f"ORD{date_part}{random_part}"
         super().save(*args, **kwargs)
 
+
 class OrderItem(models.Model):
+    public_id = models.UUIDField(default=uuid4, editable=False, unique=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(
         "products.ProductVariant",
@@ -51,6 +53,7 @@ class OrderItem(models.Model):
 
 
 class OrderStatusHistory(models.Model):
+    public_id = models.UUIDField(default=uuid4, editable=False, unique=True)
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE, related_name="status_history"
     )
