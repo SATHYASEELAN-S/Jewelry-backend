@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "apps.products",
     "apps.accounts",
     'apps.carts',
+    'apps.orders',
     # 'debug_toolbar',  # dev tools
     "drf_spectacular",  # api docs
 ]
