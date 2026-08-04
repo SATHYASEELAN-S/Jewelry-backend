@@ -1,7 +1,8 @@
 from django.urls import path
 
-from .views import Home
+from .views import InitiatePaymentAPIView, RazorpayWebhookAPIView
 
 urlpatterns=[
-    path("payments/",Home.as_view(),name="payment")
+    path("",InitiatePaymentAPIView.as_view(),name="payment"),
+    path("webhook/", RazorpayWebhookAPIView.as_view(), name="razorpay-webhook"),
 ]
