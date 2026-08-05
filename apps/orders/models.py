@@ -25,7 +25,6 @@ class Order(models.Model):
     shipping_state = models.CharField(max_length=100)
     shipping_pincode = models.CharField(max_length=6)
     shipping_landmark = models.CharField(max_length=255, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -42,6 +41,13 @@ class Order(models.Model):
             self.order_number = f"ORD{date_part}{random_part}"
         super().save(*args, **kwargs)
 
+    @property
+    def status(self):
+        latest = self.status_history.last()
+        return latest.status if latest else None
+
+    def set_status(self, new_status):
+        return self.status_history.create(status=new_status)
 
 class OrderItem(models.Model):
     public_id = models.UUIDField(default=uuid4, editable=False, unique=True)

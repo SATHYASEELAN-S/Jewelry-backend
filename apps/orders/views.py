@@ -3,7 +3,12 @@ from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.generics import RetrieveAPIView, ListAPIView
+from rest_framework.generics import (
+    RetrieveAPIView,
+    ListAPIView,
+    UpdateAPIView,
+    RetrieveUpdateAPIView,
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import ValidationError
 
@@ -13,6 +18,7 @@ from apps.products.models import ProductVariant
 from .models import Order, OrderItem, OrderStatusHistory
 from .serializers import (
     OrderSerializer,
+    OrderCancelSerializer,
     OrderItemSerializer,
     OrderStatusHistorySerializer,
 )
@@ -55,7 +61,8 @@ class CheckoutAPIView(APIView):
             total_price=cart.total_price,
         )
 
-        OrderStatusHistory.objects.create(order=order, status="pending")
+        order.set_status("pending")
+
         for item in cart_items:
             variant = item.variant
             variant.stock -= item.quantity
@@ -69,21 +76,50 @@ class CheckoutAPIView(APIView):
             )
             item.delete()
 
-        OrderStatusHistory.objects.create(order=order, status="confirmed")
+        order.set_status("confirmed")
 
         serializer = OrderSerializer(order)
         return Response(serializer.data)
 
-class OrderDetailAPIView(RetrieveAPIView):
-    serializer_class = OrderSerializer
-    lookup_field = 'public_id'
+
+class OrderDetailAPIView(RetrieveUpdateAPIView):
+    lookup_field = "public_id"
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
-    
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return OrderCancelSerializer
+        return OrderSerializer
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        order = (
+            self.get_queryset()
+            .select_for_update()
+            .get(public_id=kwargs[self.lookup_field])
+        )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        cancel = serializer.validated_data["cancel"]
+
+        if not cancel:
+            raise ValidationError("cancel must be true to cancel this order.")
+
+        if order.status != "confirmed":
+            raise ValidationError(
+                f"You can't cancel this order. This item has been already {order.status}"
+            )
+
+        order.set_status("cancelled")
+
+        return Response(OrderSerializer(order).data)
+
+
 class OrderAPIView(ListAPIView):
     serializer_class = OrderSerializer
-    
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
