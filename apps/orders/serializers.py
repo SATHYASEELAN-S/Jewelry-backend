@@ -34,13 +34,17 @@ class OrderSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
-
+    status = serializers.CharField(read_only=True)
     class Meta:
         model = Order
         fields = [
-            "id", "order_number", "status",
+            "id", "order_number","status",
             "shipping_street", "shipping_city", "shipping_state",
             "shipping_pincode", "shipping_landmark",
             "total_price", "created_at", "items", "status_history",
         ]
         read_only_fields = fields  
+
+ 
+class OrderCancelSerializer(serializers.Serializer):
+    cancel = serializers.BooleanField()
