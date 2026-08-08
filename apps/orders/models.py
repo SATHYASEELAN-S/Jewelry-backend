@@ -61,6 +61,9 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+        return f"{self.variant.product.name}"
+
 
 class OrderStatusHistory(models.Model):
     public_id = models.UUIDField(default=uuid4, editable=False, unique=True)
@@ -72,3 +75,6 @@ class OrderStatusHistory(models.Model):
 
     class Meta:
         ordering = ["changed_at"]
+
+    def __str__(self):
+        return f"{self.order.order_number} - {self.status}"

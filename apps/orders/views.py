@@ -1,27 +1,20 @@
 from django.db import transaction
 
-from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.generics import (
-    RetrieveAPIView,
-    ListAPIView,
-    UpdateAPIView,
-    RetrieveUpdateAPIView,
-)
+from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from rest_framework.views import APIView
 
-from apps.carts.models import Cart, CartItem
 from apps.accounts.models import Address
+from apps.carts.models import Cart, CartItem
+from apps.payments.models import Payment
+from apps.payments.services import RefundService
 from apps.products.models import ProductVariant
-from .models import Order, OrderItem, OrderStatusHistory
-from .serializers import (
-    OrderSerializer,
-    OrderCancelSerializer,
-    OrderItemSerializer,
-    OrderStatusHistorySerializer,
-)
+
+from .models import Order, OrderItem
+from .serializers import OrderCancelSerializer, OrderSerializer
 
 
 class CheckoutAPIView(APIView):
@@ -51,35 +44,7 @@ class CheckoutAPIView(APIView):
         if items_stock:
             raise ValidationError(items_stock)
 
-        order = Order.objects.create(
-            user=request.user,
-            shipping_street=address.street,
-            shipping_city=address.city,
-            shipping_state=address.state,
-            shipping_pincode=address.pincode,
-            shipping_landmark=address.landmark,
-            total_price=cart.total_price,
-        )
-
-        order.set_status("pending")
-
-        for item in cart_items:
-            variant = item.variant
-            variant.stock -= item.quantity
-            variant.save(update_fields=["stock"])
-            OrderItem.objects.create(
-                order=order,
-                variant=item.variant,
-                quantity=item.quantity,
-                unit_price=item.unit_price,
-                subtotal=item.subtotal,
-            )
-            item.delete()
-
-        order.set_status("confirmed")
-
-        serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        return Response({"message": "Ready to payment"}, status=status.HTTP_200_OK)
 
 
 class OrderDetailAPIView(RetrieveUpdateAPIView):
@@ -110,12 +75,23 @@ class OrderDetailAPIView(RetrieveUpdateAPIView):
 
         if order.status != "confirmed":
             raise ValidationError(
-                f"You can't cancel this order. This item has been already {order.status}"
+                f"You can't cancel this order because its current status is {order.status}."
             )
 
-        order.set_status("cancelled")
+        payment = Payment.objects.filter(order=order).first()
+        if payment is None:
+            raise ValidationError("No payment record found for this order.")
 
-        return Response(OrderSerializer(order).data)
+        order_items = OrderItem.objects.select_related("variant").filter(order=order)
+        for item in order_items:
+            variant = ProductVariant.objects.select_for_update().get(pk=item.variant_id)
+            variant.stock += item.quantity
+            variant.save(update_fields=["stock"])
+
+        result = RefundService().issue_refund(payment, payment.razorpay_payment_id)
+
+        order.set_status("cancelled")
+        return Response({"message": result["message"]}, status=status.HTTP_200_OK)
 
 
 class OrderAPIView(ListAPIView):
