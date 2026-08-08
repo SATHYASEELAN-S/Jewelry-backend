@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
-from os import getenv
 import os
+from os import getenv
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables from the .env file
@@ -31,8 +32,11 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # DEBUG = False
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["jewelry-backend-1-6iw4.onrender.com", "localhost", "127.0.0.1"]
-
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if render_host:
+    ALLOWED_HOSTS.append(render_host)
+    
 CSRF_TRUSTED_ORIGINS = [
     "https://jewelry-backend-1-6iw4.onrender.com",
 ]
