@@ -4,6 +4,7 @@ from .models import Order, OrderItem, OrderStatusHistory
 
 class OrderItemSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)
+    variant = serializers.UUIDField(source="variant.public_id", read_only=True)
     product_name = serializers.CharField(source="variant.product.name", read_only=True)
     size = serializers.CharField(source="variant.size", read_only=True)
 
@@ -19,7 +20,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "subtotal",
         ]
         read_only_fields = fields
-
 
 class OrderStatusHistorySerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)

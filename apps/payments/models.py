@@ -38,7 +38,7 @@ class Payment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        latest_status = self.status_history.first()
+        latest_status = self.status_history.last()
 
         if latest_status:
             return f"{self.razorpay_order_id} - {latest_status.status}"
@@ -63,7 +63,7 @@ class PaymentStatusHistory(models.Model):
     changed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-changed_at"]
+        ordering = ["changed_at"]
 
     def __str__(self):
         return f"{self.status} -{self.payment.razorpay_order_id} "
