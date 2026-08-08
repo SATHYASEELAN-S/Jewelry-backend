@@ -56,6 +56,7 @@ class OrderItem(models.Model):
         "products.ProductVariant",
         on_delete=models.PROTECT,
         related_name="order_items",
+        to_field="public_id",
     )
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
