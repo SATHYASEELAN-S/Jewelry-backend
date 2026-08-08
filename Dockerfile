@@ -43,8 +43,10 @@ COPY . .
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app
 
+RUN python manage.py collectstatic --noinput
+
 USER appuser
 
 EXPOSE 8000
 
-CMD ["  ", "jewelry_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["gunicorn", "jewelry_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
