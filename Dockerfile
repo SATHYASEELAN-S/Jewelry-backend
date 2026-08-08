@@ -43,8 +43,6 @@ COPY . .
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app
 
-RUN python manage.py collectstatic --noinput
-
 USER appuser
 
 EXPOSE 8000
