@@ -17,15 +17,16 @@ from apps.products.filters import ProductFilter
 
 @api_view(["GET"])
 def home(request):
-    return Response({
-        "message": "Jewelry API is running",
-        "admin": request.build_absolute_uri("/admin/"),
-        "products": request.build_absolute_uri("/api/v1/products/"),
-        "categories": request.build_absolute_uri("/api/v1/categories/"),
-        "swagger_docs": request.build_absolute_uri("/api/v1/docs/"),
-        "redoc": request.build_absolute_uri("/api/v1/redoc/"),
-    })
-
+    return Response(
+        {
+            "message": "Jewelry API is running",
+            "admin": request.build_absolute_uri("/admin/"),
+            "products": request.build_absolute_uri("/api/v1/products/"),
+            "categories": request.build_absolute_uri("/api/v1/categories/"),
+            "swagger_docs": request.build_absolute_uri("/api/v1/docs/"),
+            "redoc": request.build_absolute_uri("/api/v1/redoc/"),
+        }
+    )
 
 
 class CategoryListAPIView(ListAPIView):
@@ -65,15 +66,18 @@ class ProductListAPIView(ListAPIView):
         return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
-        show_all=self.request.query_params.get('show_all')
+        show_all = self.request.query_params.get("show_all")
         if show_all:
-            return Product.objects.all()\
-                .select_related('category')\
-                    .prefetch_related('variants','images')\
-                        .order_by('created_at')
-                
-        return Product.objects.filter(is_available=True)\
-            .select_related('category')\
-                .prefetch_related('variants', 'images')\
-                    .order_by('created_at')  
-            
+            return (
+                Product.objects.all()
+                .select_related("category")
+                .prefetch_related("variants", "images")
+                .order_by("created_at")
+            )
+
+        return (
+            Product.objects.filter(is_available=True)
+            .select_related("category")
+            .prefetch_related("variants", "images")
+            .order_by("created_at")
+        )
