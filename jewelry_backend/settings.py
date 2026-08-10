@@ -38,7 +38,7 @@ if render_host:
     ALLOWED_HOSTS.append(render_host)
     
 CSRF_TRUSTED_ORIGINS = [
-    "https://jewelry-backend-1-6iw4.onrender.com",
+    "https://jewelry-backend-1-2y2y.onrender.com", 
 ]
 
 # Application definition
