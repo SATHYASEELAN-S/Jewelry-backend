@@ -158,16 +158,32 @@ STORAGES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+    {
+        "NAME": "apps.accounts.validators.UppercaseValidator",
+    },
+    {
+        "NAME": "apps.accounts.validators.LowercaseValidator",
+    },
+    {
+        "NAME": "apps.accounts.validators.DigitValidator",
+    },
+    {
+        "NAME": "apps.accounts.validators.SpecialCharacterValidator",
+    },
+    {
+        "NAME": "apps.accounts.validators.NoWhitespaceValidator",
+    },
+    {
+        "NAME": "apps.accounts.validators.EmailSimilarityValidator",
     },
 ]
 

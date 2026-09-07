@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.accounts.models import Address
+from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
@@ -27,6 +28,10 @@ class RegisterSerializer(serializers.ModelSerializer):
                 {"confirm_password": "Passwords do not match."}
             )
         return data
+
+    def validate_password(self, password):
+        validate_password(password, self.instance)
+        return password
 
     def create(self, validated_data):
         validated_data.pop("confirm_password")

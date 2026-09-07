@@ -2,7 +2,6 @@ from uuid import uuid4
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import RegexValidator
-
 phone_validator = RegexValidator(
     regex=r"^\d{10}$", message="Phone number must be exactly 10 digits."
 )
