@@ -124,6 +124,36 @@ DATABASES = {
 #     }
 # }
 
+ 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": "jewelry",
+#         "USER": "jewelry_user",
+#         "PASSWORD": "postgre",
+#         "HOST": "127.0.0.1",
+#         "PORT": "5432",
+#         "OPTIONS": {
+#             "sslmode": "disable",
+#         },
+#         "DISABLE_SERVER_SIDE_CURSORS": True,
+#         "CONN_HEALTH_CHECKS": True,
+#     }
+# }
+
+# Caching 
+CACHES = {
+    "default":{
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get("CACHE_REDIS_URL"),
+        "TIMEOUT": 60 * 15,
+        "OPTIONS": {
+            "socket_connect_timeout": 0.5,   # give up connecting after 0.5s
+            "socket_timeout": 0.5,           # give up waiting for a reply after 0.5s
+        },
+    }
+}
+
 import cloudinary
 
 # Explicit cloudinary config - add this!
