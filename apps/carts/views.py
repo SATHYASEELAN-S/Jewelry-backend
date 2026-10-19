@@ -103,14 +103,15 @@ class CartItemAPIView(ListCreateAPIView):
 class CartItemDetailAPIView(RetrieveUpdateDestroyAPIView):
     serializer_class = CartItemDetailSerializer
     lookup_field = "public_id"
-
+    
     def get_queryset(self):
         if self.request.user.is_authenticated:
             return CartItem.objects.filter(cart__user=self.request.user)
-        else:
-            return CartItem.objects.filter(
-                cart__session_key=self.request.session.session_key
-            )
+
+        session_key = self.request.session.session_key
+        if not session_key:
+            return CartItem.objects.none()
+        return CartItem.objects.filter(cart__session_key=session_key)
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
