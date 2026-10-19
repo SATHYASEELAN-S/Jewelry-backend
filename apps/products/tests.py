@@ -34,25 +34,64 @@ class TestProductAPI(APITestCase):
             is_featured=True,
         )
 
+        self.category_url = reverse("category-list")
+        self.list_url = reverse("product-list")
+        self.detail_url = reverse("product-detail", kwargs={"slug":self.product.slug})
+        self.detail_url_1 = reverse("product-detail", kwargs={"slug":self.product1.slug})
+
+    # ---------- list ----------
+
     def test_product_list_return_200(self):
-        url = reverse("product-list")
-        response = self.client.get(url)
+        response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["results"][0]["price"], "499.00")
 
     def test_product_list_search_by_name(self):
-        url = reverse("product-list")
-        response = self.client.get(url, {"search": "ring"})
+        response = self.client.get(self.list_url, {"search": "ring"})
         self.assertEqual(response.data["count"], 1)
 
-    def test_product_list_search_by_gender(self):
-        url = reverse("product-list")
+    def test_product_list_filter_by_gender(self):
+        response = self.client.get(self.list_url, {"gender": "female"})
+        self.assertEqual(response.data["count"], 1)
+
+    def test_unavailable_products_are_excluded_from_filter(self):
+        response = self.client.get(
+            self.list_url, {"gender": "male"}
+        )
+        self.assertEqual(response.data["count"], 0)
+
+    # ---------- details ----------
+
+    def test_product_detail_return_200(self):
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(float(response.data["price"]), self.product.price)
+
+        response = self.client.get(self.detail_url_1) 
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(float(response.data["price"]), self.product1.price)
+
+    def test_product_detail_return_404(self):
+        url = reverse("product-detail", kwargs={"slug":"does-not-exist"})
         response = self.client.get(url)
-        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.status_code, 404)
 
-    def test_product_list_search_by_gender_returns_empty(self):
-        url = reverse("product-list")
-        response = self.client.get(url, {"gender": "male", "is_available": "true"})
+      # ---------- categpry ----------
+
+    def test_category_list_return_200(self):
+        response = self.client.get(self.category_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["results"][0]["name"], self.category.name)
+
+    def test_category_list_empty_returns_200(self):
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.product.delete()
+            self.product1.delete() 
+            self.category.delete()
+
+        response = self.client.get(self.category_url) 
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 0)
 
 
@@ -127,6 +166,15 @@ class TestProductCache(APITestCase):
 
         response = self.get_expecting_queries(self.detail_url)
         self.assertEqual(response.data["category"]["name"], "Ring")
+
+    def test_detail_cache_cleared_when_product_deleted(self):
+        self.client.get(self.detail_url)              
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.product.delete()
+
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 404)
 
     def test_missing_product_returns_404_and_is_not_cached(self):
         url = reverse("product-detail", kwargs={"slug": "does-not-exist"})
