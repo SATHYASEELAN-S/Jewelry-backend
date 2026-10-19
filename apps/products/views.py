@@ -43,7 +43,7 @@ class ProductDetailAPIView(RetrieveAPIView):
 
     def get_queryset(self):
         return (
-            Product.objects.filter(is_available=True)
+            Product.objects.all()
             .select_related("category")
             .prefetch_related("variants", "images")
         )
