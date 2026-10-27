@@ -27,6 +27,12 @@ urlpatterns = [
     path("",home),
     # path('', views.db_version, name='db_version'),
     path('api/v1/', include('apps.products.urls')),
+    path('api/v1/', include('apps.accounts.urls')),
+    path('api/v1/', include('apps.carts.urls')),
+    path('api/v1/', include('apps.orders.urls')),
+    path('api/v1/payments/', include('apps.payments.urls')),
+
+    
     # API Documentation
     path('api/v1/schema/',          SpectacularAPIView.as_view(),        name='schema'),
     path('api/v1/docs/',            SpectacularSwaggerView.as_view(),    name='swagger-ui'),
@@ -34,7 +40,7 @@ urlpatterns = [
 ]
 # ]+ debug_toolbar_urls()
 
-
+handler404 = 'utils.views.custom_404_handler'
  
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
