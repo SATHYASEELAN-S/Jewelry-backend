@@ -1,18 +1,25 @@
 from django.shortcuts import render
+from django.db.models import ProtectedError, RestrictedError
 
-
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import AllowAny, IsAdminUser, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.products.models import Product, Category
-from apps.products.serializers import ProductSerializer, CategorySerializer
+from apps.products.serializers import (
+    ProductSerializer,
+    CategorySerializer,
+    CategoryCreateSerializer,
+)
 from apps.products.pagination import ProductPagination
-from apps.products.filters import ProductFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
+from apps.products.filters import ProductFilter 
 
+from apps.common.exceptions import ResourceInUseError
 from .cache_utils import *
+
 
 @api_view(["GET"])
 def home(request):
@@ -27,14 +34,41 @@ def home(request):
         }
     )
 
+class PublicReadAdminWriteMixin:
+    """Anyone can read; only admin users can create, update or delete."""
 
-class CategoryListAPIView(ListAPIView):
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return [AllowAny()]
+        return [IsAdminUser()]
 
+    def get_serializer_class(self):
+        if self.request.user.is_staff:
+            return CategoryCreateSerializer
+        return CategorySerializer
+
+
+class CategoryListCreateAPIView(PublicReadAdminWriteMixin, ListCreateAPIView):
     queryset = Category.objects.all()
-    serializer_class = CategorySerializer
 
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+
+class CategoryDetailAPIView(PublicReadAdminWriteMixin, RetrieveUpdateDestroyAPIView):
+    queryset = Category.objects.all()
+    lookup_field = "slug"
+
+    def destroy(self, request, *args, **kwargs):
+        category = self.get_object()
+        count = category.products.count() 
+
+        try:
+            category.delete()
+        except (ProtectedError, RestrictedError) as e:
+            raise ResourceInUseError(
+                f"Cannot delete '{category.name}' because it has "
+                f"{count} product(s). Move or delete them first."
+            ) from e
+
+        return Response(status=204)
 
 
 class ProductDetailAPIView(RetrieveAPIView):
@@ -50,7 +84,7 @@ class ProductDetailAPIView(RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         key = detail_cache_key(kwargs["slug"])
-       
+
         data = safe_get(key)
         if data is not None:
             return Response(data)
@@ -84,10 +118,10 @@ class ProductListAPIView(ListAPIView):
             .prefetch_related("variants", "images")
             .order_by("created_at")
         )
-    
+
     def list(self, request, *args, **kwargs):
         key = list_cache_key(request)
-        data = safe_get(key)
+        data = safe_get(key)    
         if data is not None:
             return Response(data)
 

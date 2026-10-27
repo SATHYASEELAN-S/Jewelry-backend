@@ -8,6 +8,7 @@ from rest_framework.exceptions import (
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
+from apps.common.exceptions import ResourceInUseError
 
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
@@ -34,6 +35,9 @@ def custom_exception_handler(exc, context):
     if isinstance(exc, ValidationError):
         message = "Validation Error"
         errors = response.data
+    
+    elif isinstance(exc, ResourceInUseError):
+        message = str(exc.detail)
 
     elif isinstance(exc, NotAuthenticated):
         message = "Authentication credentials were not provided."
