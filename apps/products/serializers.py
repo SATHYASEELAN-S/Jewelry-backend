@@ -10,6 +10,13 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ["id", "name", "slug"]
 
+class CategoryCreateSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
+    class Meta:
+        model = Category
+        fields = "__all__"
+
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)

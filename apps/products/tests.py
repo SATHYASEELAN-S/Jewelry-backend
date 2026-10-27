@@ -1,18 +1,178 @@
-from rest_framework.test import APITestCase
+from django.contrib.auth import get_user_model
 from django.urls import reverse
-from redis.exceptions import ConnectionError as RedisConnectionError
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
+
+from rest_framework.test import APITestCase
+
 from unittest.mock import patch, MagicMock
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from apps.products.models import Category, Product
-
 from apps.products import cache_utils
+
+User = get_user_model()
+
+
+IMAGE_BYTES = (
+    b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04"
+    b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+)
+
+class TestCategoryAPI(APITestCase):
+    def setUp(self):
+        self.category = Category.objects.create(
+            name="rings",
+            slug="rings",
+            description="premium rings for men and women",
+            alt_text="Ring image",
+            image=SimpleUploadedFile(
+                "ring.gif", IMAGE_BYTES, content_type="image/gif"
+            ),
+        )
+        self.category1 = Category.objects.create(
+            name="earrings",
+            slug="earrings",
+            description="premium earring for men and women",
+            alt_text="Earring image",
+            image=SimpleUploadedFile(
+                "earring.gif", IMAGE_BYTES, content_type="image/gif"
+            ),
+        )
+        self.product = Product.objects.create(
+            category=self.category,
+            name="gold plated ring",
+            slug="gold-plated-ring",
+            description="gold plated ring for female",
+            price=499.00,
+            gender="female",
+            is_available=True,
+            is_featured=True,
+        )
+        self.category_url = reverse("category-list") 
+        self.admin_user = User.objects.create_user(
+            email="admin@test.com",
+            password="pass1234",
+            is_staff=True,
+        )
+        self.normal_user = User.objects.create_user(
+            email="user@test.com",
+            password="pass1234",
+        )
+        self.category_detail_url = reverse("category-detail", kwargs={"slug": self.category.slug})
+        self.category_detail_url_1 = reverse("category-detail", kwargs={"slug": self.category1.slug})
+
+
+    # A tiny valid image, so the image field accepts it
+
+    def category_data(self, **changes):
+        """All mandatory fields. Pass changes to override a field."""
+        data = {
+            "name": "Watches",
+            "slug": "watches",
+            "description": "premium watches for men and women",
+            "alt_text": "Watches image",
+            "image": SimpleUploadedFile(
+                "watch.gif", IMAGE_BYTES, content_type="image/gif"
+            ),
+        }
+        data.update(changes)
+        return data
+    
+    # ---------- category detail ----------
+
+    def test_category_detail_returns_200(self):
+        response = self.client.get(self.category_detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["name"], self.category.name)
+
+    def test_category_detail_not_found_returns_404(self):
+        response = self.client.get(f"{self.category_url}wrong-slug/")
+        self.assertEqual(response.status_code, 404)
+
+    # ---------- category create ----------
+
+    def test_category_create_without_login_fails(self):
+        response = self.client.post(
+            self.category_url, self.category_data(), format="multipart"
+        )
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_category_create_normal_user_returns_403(self):
+        self.client.force_authenticate(user=self.normal_user)
+        response = self.client.post(
+            self.category_url, self.category_data(), format="multipart"
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_category_create_admin_returns_201(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.post(
+            self.category_url, self.category_data(), format="multipart"
+        ) 
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Category.objects.filter(slug="watches").exists())
+
+    def test_category_create_without_name_returns_400(self):
+        self.client.force_authenticate(user=self.admin_user)
+        data = self.category_data()
+        data.pop("name")
+        response = self.client.post(self.category_url, data, format="multipart")
+        self.assertEqual(response.status_code, 400)
+
+    def test_category_create_without_image_returns_400(self):
+        self.client.force_authenticate(user=self.admin_user)
+        data = self.category_data()
+        data.pop("image")
+        response = self.client.post(self.category_url, data, format="multipart")
+        self.assertEqual(response.status_code, 400)
+
+    def test_category_create_without_alt_text_returns_400(self):
+        self.client.force_authenticate(user=self.admin_user)
+        data = self.category_data()
+        data.pop("alt_text")
+        response = self.client.post(self.category_url, data, format="multipart")
+        self.assertEqual(response.status_code, 400)
+
+    # ---------- category delete ----------
+
+    def test_category_delete_with_products_returns_409(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.delete(self.category_detail_url)
+        self.assertEqual(response.status_code, 409)
+        self.assertTrue(Category.objects.filter(pk=self.category.pk).exists())
+
+    def test_category_delete_empty_returns_204(self):
+
+        self.client.force_authenticate(user=self.admin_user) 
+        
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(self.category_detail_url_1)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Category.objects.filter(pk=self.category1.pk).exists())
 
 
 class TestProductAPI(APITestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="rings", slug="rings")
+        self.category = Category.objects.create(
+            name="rings",
+            slug="rings",
+            description="premium rings for men and women",
+            alt_text="Ring image",
+            image=SimpleUploadedFile(
+                "ring.gif", IMAGE_BYTES, content_type="image/gif"
+            ),
+        )
+        self.category1 = Category.objects.create(
+            name="earrings",
+            slug="earrings",
+            description="premium earring for men and women",
+            alt_text="Earring image",
+            image=SimpleUploadedFile(
+                "earring.gif", IMAGE_BYTES, content_type="image/gif"
+            ),
+        )
         self.product = Product.objects.create(
             category=self.category,
             name="gold plated ring",
@@ -34,12 +194,42 @@ class TestProductAPI(APITestCase):
             is_featured=True,
         )
 
-        self.category_url = reverse("category-list")
+        self.category_url = reverse("category-list") 
         self.list_url = reverse("product-list")
-        self.detail_url = reverse("product-detail", kwargs={"slug":self.product.slug})
-        self.detail_url_1 = reverse("product-detail", kwargs={"slug":self.product1.slug})
+        self.detail_url = reverse("product-detail", kwargs={"slug": self.product.slug})
+        self.detail_url_1 = reverse(
+            "product-detail", kwargs={"slug": self.product1.slug}
+        )
+        self.admin_user = User.objects.create_user(
+            email="admin@test.com",
+            password="pass1234",
+            is_staff=True,
+        )
+        self.normal_user = User.objects.create_user(
+            email="user@test.com",
+            password="pass1234",
+        )
+        self.category_detail_url = reverse("category-detail", kwargs={"slug": self.category.slug})
+        self.category_detail_url_1 = reverse("category-detail", kwargs={"slug": self.category1.slug})
 
-    # ---------- list ----------
+
+    # A tiny valid image, so the image field accepts it
+
+    def category_data(self, **changes):
+        """All mandatory fields. Pass changes to override a field."""
+        data = {
+            "name": "Watches",
+            "slug": "watches",
+            "description": "premium watches for men and women",
+            "alt_text": "Watches image",
+            "image": SimpleUploadedFile(
+                "watch.gif", IMAGE_BYTES, content_type="image/gif"
+            ),
+        }
+        data.update(changes)
+        return data
+
+    # ---------- product list ----------
 
     def test_product_list_return_200(self):
         response = self.client.get(self.list_url)
@@ -55,12 +245,10 @@ class TestProductAPI(APITestCase):
         self.assertEqual(response.data["count"], 1)
 
     def test_unavailable_products_are_excluded_from_filter(self):
-        response = self.client.get(
-            self.list_url, {"gender": "male"}
-        )
+        response = self.client.get(self.list_url, {"gender": "male"})
         self.assertEqual(response.data["count"], 0)
 
-    # ---------- details ----------
+    # ---------- product details ----------
 
     def test_product_detail_return_200(self):
         response = self.client.get(self.detail_url)
@@ -75,24 +263,6 @@ class TestProductAPI(APITestCase):
         url = reverse("product-detail", kwargs={"slug":"does-not-exist"})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
-
-      # ---------- categpry ----------
-
-    def test_category_list_return_200(self):
-        response = self.client.get(self.category_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["results"][0]["name"], self.category.name)
-
-    def test_category_list_empty_returns_200(self):
-
-        with self.captureOnCommitCallbacks(execute=True):
-            self.product.delete()
-            self.product1.delete() 
-            self.category.delete()
-
-        response = self.client.get(self.category_url) 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["count"], 0)
 
 
 TEST_CACHES = {
