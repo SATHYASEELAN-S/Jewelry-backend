@@ -35,3 +35,19 @@ def variant_changed(sender, instance, **kwargs):
 def category_changed(sender, instance, **kwargs):
     slugs = list(Product.objects.filter(category=instance).values_list("slug", flat=True))
     _schedule(slugs)
+
+def _delete_file(storage, name):
+    try:
+        storage.delete(name)           
+    except Exception:
+        logger.exception("Could not delete %s from storage", name)
+ 
+ 
+@receiver(post_delete, sender=ProductImage)
+def delete_product_image_file(sender, instance, **kwargs):
+    if not instance.image:
+        return
+    
+    storage, name = instance.image.storage, instance.image.name
+
+    transaction.on_commit(lambda: _delete_file(storage, name))

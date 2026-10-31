@@ -20,6 +20,7 @@ IMAGE_BYTES = (
     b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
 )
 
+
 class TestCategoryAPI(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(
@@ -27,9 +28,7 @@ class TestCategoryAPI(APITestCase):
             slug="rings",
             description="premium rings for men and women",
             alt_text="Ring image",
-            image=SimpleUploadedFile(
-                "ring.gif", IMAGE_BYTES, content_type="image/gif"
-            ),
+            image=SimpleUploadedFile("ring.gif", IMAGE_BYTES, content_type="image/gif"),
         )
         self.category1 = Category.objects.create(
             name="earrings",
@@ -50,7 +49,7 @@ class TestCategoryAPI(APITestCase):
             is_available=True,
             is_featured=True,
         )
-        self.category_url = reverse("category-list") 
+        self.category_url = reverse("category-list")
         self.admin_user = User.objects.create_user(
             email="admin@test.com",
             password="pass1234",
@@ -60,9 +59,12 @@ class TestCategoryAPI(APITestCase):
             email="user@test.com",
             password="pass1234",
         )
-        self.category_detail_url = reverse("category-detail", kwargs={"slug": self.category.slug})
-        self.category_detail_url_1 = reverse("category-detail", kwargs={"slug": self.category1.slug})
-
+        self.category_detail_url = reverse(
+            "category-detail", kwargs={"slug": self.category.slug}
+        )
+        self.category_detail_url_1 = reverse(
+            "category-detail", kwargs={"slug": self.category1.slug}
+        )
 
     # A tiny valid image, so the image field accepts it
 
@@ -79,7 +81,7 @@ class TestCategoryAPI(APITestCase):
         }
         data.update(changes)
         return data
-    
+
     # ---------- category detail ----------
 
     def test_category_detail_returns_200(self):
@@ -110,7 +112,7 @@ class TestCategoryAPI(APITestCase):
         self.client.force_authenticate(user=self.admin_user)
         response = self.client.post(
             self.category_url, self.category_data(), format="multipart"
-        ) 
+        )
         self.assertEqual(response.status_code, 201)
         self.assertTrue(Category.objects.filter(slug="watches").exists())
 
@@ -145,8 +147,8 @@ class TestCategoryAPI(APITestCase):
 
     def test_category_delete_empty_returns_204(self):
 
-        self.client.force_authenticate(user=self.admin_user) 
-        
+        self.client.force_authenticate(user=self.admin_user)
+
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.delete(self.category_detail_url_1)
         self.assertEqual(response.status_code, 204)
@@ -160,9 +162,7 @@ class TestProductAPI(APITestCase):
             slug="rings",
             description="premium rings for men and women",
             alt_text="Ring image",
-            image=SimpleUploadedFile(
-                "ring.gif", IMAGE_BYTES, content_type="image/gif"
-            ),
+            image=SimpleUploadedFile("ring.gif", IMAGE_BYTES, content_type="image/gif"),
         )
         self.category1 = Category.objects.create(
             name="earrings",
@@ -194,8 +194,8 @@ class TestProductAPI(APITestCase):
             is_featured=True,
         )
 
-        self.category_url = reverse("category-list") 
-        self.list_url = reverse("product-list")
+        self.category_url = reverse("category-list")
+        self.product_url = reverse("product-list")
         self.detail_url = reverse("product-detail", kwargs={"slug": self.product.slug})
         self.detail_url_1 = reverse(
             "product-detail", kwargs={"slug": self.product1.slug}
@@ -209,9 +209,12 @@ class TestProductAPI(APITestCase):
             email="user@test.com",
             password="pass1234",
         )
-        self.category_detail_url = reverse("category-detail", kwargs={"slug": self.category.slug})
-        self.category_detail_url_1 = reverse("category-detail", kwargs={"slug": self.category1.slug})
-
+        self.category_detail_url = reverse(
+            "category-detail", kwargs={"slug": self.category.slug}
+        )
+        self.category_detail_url_1 = reverse(
+            "category-detail", kwargs={"slug": self.category1.slug}
+        )
 
     # A tiny valid image, so the image field accepts it
 
@@ -232,22 +235,61 @@ class TestProductAPI(APITestCase):
     # ---------- product list ----------
 
     def test_product_list_return_200(self):
-        response = self.client.get(self.list_url)
+        response = self.client.get(self.product_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["results"][0]["price"], "499.00")
 
     def test_product_list_search_by_name(self):
-        response = self.client.get(self.list_url, {"search": "ring"})
+        response = self.client.get(self.product_url, {"search": "ring"})
         self.assertEqual(response.data["count"], 1)
 
     def test_product_list_filter_by_gender(self):
-        response = self.client.get(self.list_url, {"gender": "female"})
+        response = self.client.get(self.product_url, {"gender": "female"})
         self.assertEqual(response.data["count"], 1)
 
     def test_unavailable_products_are_excluded_from_filter(self):
-        response = self.client.get(self.list_url, {"gender": "male"})
+        response = self.client.get(self.product_url, {"gender": "male"})
         self.assertEqual(response.data["count"], 0)
 
+    # ---------- product create ----------
+
+    def test_product_create_admin_user_return_201(self):
+        data = {
+            "name": "Gold Ring",
+            "slug": "gold-ring",
+            "description": "Nice ring",
+            "price": "999.00",
+            "gender": "unisex",
+            "is_featured": False,
+            "is_available": True,
+            "category": self.category.slug,
+            "variants": [
+                {"size": "m", "stock": "25", "extra_price": 20.2},
+                {"size": "l", "stock": "5", "extra_price": 20.2},
+            ],
+        }
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.post(self.product_url, data, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["price"], "999.00")
+    
+    def test_product_create_normal_user_returns_403(self):
+        self.client.force_authenticate(user=self.normal_user)
+        response = self.client.post(self.product_url, {}, format="json")
+        self.assertEqual(response.status_code, 403) 
+
+    def test_product_create_with_empty_variant_returns_400(self):
+        self.client.force_authenticate(user=self.admin_user)
+        data = {
+            "name": "Gold Ring", "slug": "gold-ring", "description": "Nice ring",
+            "price": "999.00", "gender": "unisex", "is_featured": False,
+            "is_available": True, "category": self.category.slug,
+            "variants": [{}],
+        }
+        response = self.client.post(self.product_url, data, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("variants", response.data["errors"])
+    
     # ---------- product details ----------
 
     def test_product_detail_return_200(self):
@@ -255,12 +297,13 @@ class TestProductAPI(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(float(response.data["price"]), self.product.price)
 
-        response = self.client.get(self.detail_url_1) 
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.detail_url_1)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(float(response.data["price"]), self.product1.price)
 
     def test_product_detail_return_404(self):
-        url = reverse("product-detail", kwargs={"slug":"does-not-exist"})
+        url = reverse("product-detail", kwargs={"slug": "does-not-exist"})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
@@ -295,7 +338,7 @@ class TestProductCache(APITestCase):
             is_available=True,
         )
         self.detail_url = reverse("product-detail", kwargs={"slug": self.product.slug})
-        self.list_url = reverse("product-list")
+        self.product_url = reverse("product-list")
 
     def get_expecting_queries(self, url, queries=0):
         with self.assertNumQueries(queries):
@@ -338,7 +381,7 @@ class TestProductCache(APITestCase):
         self.assertEqual(response.data["category"]["name"], "Ring")
 
     def test_detail_cache_cleared_when_product_deleted(self):
-        self.client.get(self.detail_url)              
+        self.client.get(self.detail_url)
 
         with self.captureOnCommitCallbacks(execute=True):
             self.product.delete()
@@ -355,23 +398,23 @@ class TestProductCache(APITestCase):
     # ---------- list ----------
 
     def test_list_second_request_uses_cache(self):
-        self.client.get(self.list_url)
+        self.client.get(self.product_url)
 
-        response = self.get_expecting_queries(self.list_url)
+        response = self.get_expecting_queries(self.product_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(float(response.data["results"][0]["price"]), 499.00)
 
     def test_list_refreshes_after_product_change(self):
-        self.client.get(self.list_url)
+        self.client.get(self.product_url)
 
         with self.captureOnCommitCallbacks(execute=True):
             self.product.price = 199.00
             self.product.save()
 
-        response = self.get_expecting_queries(self.list_url, 4)
+        response = self.get_expecting_queries(self.product_url, 4)
         self.assertEqual(float(response.data["results"][0]["price"]), 199.00)
 
-        response = self.get_expecting_queries(self.list_url)
+        response = self.get_expecting_queries(self.product_url)
         self.assertEqual(float(response.data["results"][0]["price"]), 199.00)
 
     def test_version_changes_after_bump(self):
@@ -380,13 +423,13 @@ class TestProductCache(APITestCase):
         self.assertNotEqual(old, cache_utils.get_list_version())
 
     def test_same_filters_in_different_order_share_one_key(self):
-        a = self.client.get(self.list_url + "?search=gold&page=1")
-        b = self.client.get(self.list_url + "?page=1&search=gold")
+        a = self.client.get(self.product_url + "?search=gold&page=1")
+        b = self.client.get(self.product_url + "?page=1&search=gold")
 
         self.assertEqual(a.data, b.data)
         self.assertEqual(a.data["count"], 1)
 
-        self.get_expecting_queries(self.list_url + "?page=1&search=gold", 0)
+        self.get_expecting_queries(self.product_url + "?page=1&search=gold", 0)
 
     # ---------- redis failure ----------
 
@@ -399,7 +442,7 @@ class TestProductCache(APITestCase):
 
     def test_list_works_when_redis_is_down(self):
         with patch.object(cache_utils, "cache", broken_cache()):
-            response = self.get_expecting_queries(self.list_url, 4)
+            response = self.get_expecting_queries(self.product_url, 4)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)

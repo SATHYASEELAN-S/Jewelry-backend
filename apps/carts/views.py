@@ -77,9 +77,9 @@ class CartItemAPIView(ListCreateAPIView):
             message = "Item added to cart."
             status_code = status.HTTP_201_CREATED
         else:
-            if (cart_item.quantity + quantity) > variant.stock:
+            if quantity > variant.stock:
                 raise ValidationError(f"Only {variant.stock} items left.")
-            cart_item.quantity += quantity
+            cart_item.quantity = quantity
             cart_item.save(update_fields=["quantity"])
             message = "Cart item quantity updated."
             status_code = status.HTTP_200_OK

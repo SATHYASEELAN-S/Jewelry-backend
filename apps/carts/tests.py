@@ -154,7 +154,7 @@ class TestCartCreateAPI(CartTestBase):
 
         self.assertEqual(Cart.objects.filter(user=self.user).count(), 1)
 
-    def test_adding_same_variant_increases_quantity(self):
+    def test_changing_same_variant_quantity(self):
         self.client.force_authenticate(user=self.user)
         self.client.post(self.list_url, self.add_payload(quantity=2), format="json")
 
@@ -162,7 +162,7 @@ class TestCartCreateAPI(CartTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["message"], "Cart item quantity updated.")
-        self.assertEqual(response.data["quantity"], 3)
+        self.assertEqual(response.data["quantity"], 1)
         self.assertEqual(CartItem.objects.count(), 1)
 
     def test_add_more_than_stock_returns_400_and_creates_nothing(self):
@@ -176,7 +176,7 @@ class TestCartCreateAPI(CartTestBase):
         self.client.force_authenticate(user=self.user)
         self.client.post(self.list_url, self.add_payload(quantity=4), format="json")
 
-        response = self.client.post(self.list_url, self.add_payload(quantity=2), format="json")
+        response = self.client.post(self.list_url, self.add_payload(quantity=6), format="json")
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(CartItem.objects.get().quantity, 4)
